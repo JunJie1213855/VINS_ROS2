@@ -37,6 +37,26 @@ sudo apt install -y ros-humble-image-transport ros-humble-rviz2
 
 ---
 
+### 当前编译环境
+
+| 组件 | 版本 |
+|------|------|
+| Ubuntu | 22.04.5 LTS |
+| Kernel | 6.8.0-124-generic |
+| ROS2 | Humble Hawksbill |
+| GCC | 11.4.0 |
+| G++ | 11.4.0 |
+| CMake | 4.4.0 |
+| GNU Make | 4.3 |
+| Python | 3.10.20 |
+| Ceres Solver | 2.0.0 (apt) |
+| Eigen3 | 3.4.0 |
+| OpenCV | 5.0.0 |
+| CPU | 24 cores |
+| ROS2 已安装包 | 318 |
+
+---
+
 ### Sensor Setup
 
 - camera: Intel Realsense D435i
