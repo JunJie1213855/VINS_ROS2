@@ -1,5 +1,7 @@
 # VINS-Fusion
 
+![example](./docs/image.png)
+
 ## ROS2 version of VINS-Fusion.
 
 > 基于优化的多传感器融合 SLAM — ROS2 Humble 适配版
