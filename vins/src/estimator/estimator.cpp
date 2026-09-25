@@ -442,6 +442,7 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
     // 如果不是第一帧，那就开始积分
     if (frame_count != 0)
     {
+        // 预积分因子加入数据，内部会更新预积分量
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
         //if(solver_flag != NON_LINEAR)
             tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
@@ -474,8 +475,6 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
 
 void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
 {
-
-
     cout << std::fixed << header << endl;
 
     ROS_DEBUG("new image coming ------------------------------------------");
