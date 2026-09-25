@@ -329,16 +329,16 @@ void Estimator::processMeasurements()
             // cout << "3" << endl;
             if(USE_IMU)
             {
-                if(!initFirstPoseFlag) // 初始化 IMU 状态，包括零状态和重力
+                if(!initFirstPoseFlag) // 初始化 IMU 旋转状态
                     initFirstIMUPose(accVector);
                 for(size_t i = 0; i < accVector.size(); i++)
                 {
                     double dt;
-                    if(i == 0)
+                    if(i == 0)                               // 开始
                         dt = accVector[i].first - prevTime;
-                    else if (i == accVector.size() - 1)
+                    else if (i == accVector.size() - 1)      // 结尾
                         dt = curTime - accVector[i - 1].first;
-                    else
+                    else                                     // 中间
                         dt = accVector[i].first - accVector[i - 1].first;
                     processIMU(accVector[i].first, dt, accVector[i].second, gyrVector[i].second); // 开始前向积分
                 }
@@ -404,9 +404,12 @@ void Estimator::initFirstIMUPose(vector<pair<double, Eigen::Vector3d>> &accVecto
     }
     averAcc = averAcc / n;
     printf("averge acc %f %f %f\n", averAcc.x(), averAcc.y(), averAcc.z());
+    // 重力对齐，是在 roll、pitch 上旋转，但是会引入 yaw 轴偏移
     Matrix3d R0 = Utility::g2R(averAcc);
+    // yaw 轴偏移消除
     double yaw = Utility::R2ypr(R0).x();
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0;
+    // 初始化第一帧旋转矩阵
     Rs[0] = R0;
     cout << "init R0 " << endl << Rs[0] << endl;
     //Vs[0] = Vector3d(5, 0, 0);
@@ -430,10 +433,13 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
         gyr_0 = angular_velocity;
     }
 
+    // 如果当前帧的预积分因子没有创建，那就创建一个
     if (!pre_integrations[frame_count])
     {
         pre_integrations[frame_count] = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]};
     }
+
+    // 如果不是第一帧，那就开始积分
     if (frame_count != 0)
     {
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
@@ -444,15 +450,24 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
         linear_acceleration_buf[frame_count].push_back(linear_acceleration);
         angular_velocity_buf[frame_count].push_back(angular_velocity);
 
+        // 记录帧索引
         int j = frame_count;         
+        // 初始加速度名义： a_0  =  R_jo (a_m0 - b_aj) - g
         Vector3d un_acc_0 = Rs[j] * (acc_0 - Bas[j]) - g;
+        // 角速度名义：w = (w_m0 + w_mj) / 2 - b_g
         Vector3d un_gyr = 0.5 * (gyr_0 + angular_velocity) - Bgs[j];
+        // 1.旋转累乘： R_jn = R_jo * Exp(w dt)
         Rs[j] *= Utility::deltaQ(un_gyr * dt).toRotationMatrix();
+        // 当前加速度名义： a_j = R_jn(a_mj - b_aj) - g
         Vector3d un_acc_1 = Rs[j] * (linear_acceleration - Bas[j]) - g;
+        // 加速度名义： a = (a_0 + a_j) / 2
         Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
+        // 2.位移名义： p_jn = p_jo + v_jo * dt + a * (dt)^2 / 2 
         Ps[j] += dt * Vs[j] + 0.5 * dt * dt * un_acc;
+        // 3.速度名义：v_jn = v_jo + a * dt
         Vs[j] += dt * un_acc;
     }
+    // 更新初始化 IMU 初始输入
     acc_0 = linear_acceleration;
     gyr_0 = angular_velocity; 
 }
