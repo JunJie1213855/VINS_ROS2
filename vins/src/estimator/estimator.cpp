@@ -243,9 +243,11 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
     }
     // printf("get imu from %f %f\n", t0, t1);
     // printf("imu fornt time %f   imu end time %f\n", accBuf.front().first, accBuf.back().first);
+
+    // 如果当前imu缓存最后一帧时间戳大于当前图像帧时间戳，则是可以积分的
     if(t1 <= accBuf.back().first)
     {
-        while (accBuf.front().first <= t0)
+        while (accBuf.front().first <= t0) // 如果当前 imu 最小时间戳小于前一帧图像帧，就去除前一帧之前的 imu 数据，避免重复积分
         {
             // std::cout << "t_imu: " << std::fixed << accBuf.front().first << "  t_0: " << std::fixed << t0 << "   gyr_buf size: " << gyrBuf.size() << std::endl;
             // std::cout << "1) acc pop" << std::endl;
@@ -253,6 +255,7 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
             // std::cout << "1) gyr pop" << std::endl;
             gyrBuf.pop();
         }
+        // 开始收集在 [t0, t1] 内的 imu 缓存数据，由于积分
         while (accBuf.front().first < t1)
         {
             accVector.push_back(accBuf.front());
@@ -262,11 +265,13 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
             // std::cout << "2) gyr pop" << std::endl;
             gyrBuf.pop();
         }
+        // 多收集一帧，积分后用于插值，但是不会弹出!!!
         accVector.push_back(accBuf.front());
         gyrVector.push_back(gyrBuf.front());
     }
     else
     {
+        // 当前 imu 的最大时间戳小于图像帧时间戳，需要等待 imu 数据
         printf("wait for imu\n");
         return false;
     }
@@ -275,6 +280,7 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
 
 bool Estimator::IMUAvailable(double t)
 {
+    // 加速度缓存不为空，且加速度最后一帧数据的时间戳大于当前图像帧时间戳，则可以进行积分插值
     if(!accBuf.empty() && t <= accBuf.back().first)
         return true;
     else
@@ -295,7 +301,7 @@ void Estimator::processMeasurements()
             feature = featureBuf.front();
             curTime = feature.first + td;
             // std::cout << "t0: " << std::fixed << curTime << std::endl;
-            while(1)
+            while(1) // imu 是否可用，可用需要等待 imu 数据时间戳大于当前帧图像的时间戳
             {
                 if ((!USE_IMU  || IMUAvailable(feature.first + td)))
                     break;
@@ -310,7 +316,7 @@ void Estimator::processMeasurements()
             }
             // cout << "2" << endl;
             mBuf.lock();
-            if(USE_IMU)
+            if(USE_IMU) // 获取 [prev_time, cur_time] 的imu缓存数据
             {
                 // cout << "2-1)" << endl;
                 getIMUInterval(prevTime, curTime, accVector, gyrVector);
@@ -323,7 +329,7 @@ void Estimator::processMeasurements()
             // cout << "3" << endl;
             if(USE_IMU)
             {
-                if(!initFirstPoseFlag)
+                if(!initFirstPoseFlag) // 初始化 IMU 状态，包括零状态和重力
                     initFirstIMUPose(accVector);
                 for(size_t i = 0; i < accVector.size(); i++)
                 {
@@ -334,7 +340,7 @@ void Estimator::processMeasurements()
                         dt = curTime - accVector[i - 1].first;
                     else
                         dt = accVector[i].first - accVector[i - 1].first;
-                    processIMU(accVector[i].first, dt, accVector[i].second, gyrVector[i].second);
+                    processIMU(accVector[i].first, dt, accVector[i].second, gyrVector[i].second); // 开始前向积分
                 }
             }
             // cout << "4" << endl;
