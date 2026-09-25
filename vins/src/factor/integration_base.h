@@ -15,10 +15,29 @@
 #include <ceres/ceres.h>
 using namespace Eigen;
 
+/**
+ * IMU 预积分基础类：在两帧图像之间累积 IMU 测量，计算预积分量及误差状态传播
+ *
+ * 动力学方程:
+ *   Ṗ = V
+ *   V̇ = R(a_m - b_a - n_a) + g
+ *   Ṙ = R[ω_m - b_g - n_g]×
+ *   ḃ_a = n_ba,  ḃ_g = n_bg
+ *
+ * 15 维误差状态: [δp(3), δθ(3), δv(3), δba(3), δbg(3)]
+ * 18 维噪声向量: [n_a_k(3), n_g_k(3), n_a_k+1(3), n_g_k+1(3), n_ba(3), n_bg(3)]
+ *
+ * 核心方法:
+ *   push_back(dt, acc, gyr)  — 缓存 IMU 数据并中值积分
+ *   midPointIntegration(...)  — 单步中值积分 + 雅可比传播
+ *   evaluate(Pi,Qi,Vi,Bai,Bgi, Pj,Qj,Vj,Baj,Bgj)  — 计算 15 维 IMU 残差
+ */
 class IntegrationBase
 {
   public:
     IntegrationBase() = delete;
+
+    // 接受上一时刻的加速度、角速度和该时刻的加速、角速度，利用中值进行积分
     IntegrationBase(const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
                     const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
         : acc_0{_acc_0}, gyr_0{_gyr_0}, linearized_acc{_acc_0}, linearized_gyr{_gyr_0},
@@ -36,6 +55,7 @@ class IntegrationBase
         noise.block<3, 3>(15, 15) =  (GYR_W * GYR_W) * Eigen::Matrix3d::Identity();
     }
 
+    // 加入一个控制输入
     void push_back(double dt, const Eigen::Vector3d &acc, const Eigen::Vector3d &gyr)
     {
         dt_buf.push_back(dt);
@@ -68,10 +88,13 @@ class IntegrationBase
                             Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
                             Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
-        //ROS_INFO("midpoint integration");
-        Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
-        Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg;
+        // ROS_INFO("midpoint integration");
+        
+        // 名义状态
+        Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba); // R(a - b_a)
+        Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg; // 1 / 2 (w0 + w1) - b_g
         result_delta_q = delta_q * Quaterniond(1, un_gyr(0) * _dt / 2, un_gyr(1) * _dt / 2, un_gyr(2) * _dt / 2);
+        
         Vector3d un_acc_1 = result_delta_q * (_acc_1 - linearized_ba);
         Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
         result_delta_p = delta_p + delta_v * _dt + 0.5 * un_acc * _dt * _dt;

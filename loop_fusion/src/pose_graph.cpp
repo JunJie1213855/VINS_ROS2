@@ -31,7 +31,11 @@ PoseGraph::PoseGraph()
 
 PoseGraph::~PoseGraph()
 {
-    t_optimization.detach();
+    // 线程只在 setIMUFlag() 里启动。若走的是提前 return 的路径
+    // （参数错误 / 配置打不开），t_optimization 从未启动，
+    // 对不可 join 的线程调 detach() 会抛 std::system_error(invalid_argument)。
+    if (t_optimization.joinable())
+        t_optimization.detach();
 }
 
 void PoseGraph::registerPub(rclcpp::Node::SharedPtr n)

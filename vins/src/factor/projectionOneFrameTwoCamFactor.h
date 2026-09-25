@@ -18,6 +18,17 @@
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
+/**
+ * 单帧双目重投影残差因子：同一帧内从左相机到右相机的重投影
+ *
+ * 2 维残差＝右图像平面上的重投影误差 (pixel)
+ * 7 维输入 外参 cam0  [tx, ty, tz, qx, qy, qz, qw] — IMU 到左相机
+ * 7 维输入 外参 cam1  [tx, ty, tz, qx, qy, qz, qw] — IMU 到右相机
+ * 1 维输入 inv_depth — 特征点在左相机帧中的逆深度
+ * 1 维输入 td        — 相机-IMU 时间偏移 (用于卷帘快门补偿)
+ *
+ * 不依赖帧间的 IMU 位姿，仅依赖双目外参和深度
+ */
 class ProjectionOneFrameTwoCamFactor : public ceres::SizedCostFunction<2, 7, 7, 1, 1>
 {
   public:

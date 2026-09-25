@@ -17,7 +17,10 @@
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
-
+/**
+ * 初始化零偏因子：用于初始化零偏
+ * 六维残差，九维输入bg、ba
+ */
 class InitialBiasFactor : public ceres::SizedCostFunction<6, 9>
 {
   public:

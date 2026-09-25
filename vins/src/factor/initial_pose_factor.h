@@ -18,6 +18,14 @@
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
+/**
+ * 初始位姿先验因子：约束第一帧位姿接近给定初始值
+ *
+ * 6 维残差＝[位置误差(3), 旋转误差(3)]^T，使用信息矩阵权重 1000·I
+ * 7 维输入 Pose [x, y, z, qx, qy, qz, qw] — 被约束的位姿
+ *
+ * 用于初始化的第一阶段，防止优化发散
+ */
 class InitialPoseFactor : public ceres::SizedCostFunction<6, 7>
 {
   public:

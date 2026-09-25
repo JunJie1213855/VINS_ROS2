@@ -86,13 +86,13 @@ void sync_process()
                 double time0 = img0_buf.front()->header.stamp.sec + img0_buf.front()->header.stamp.nanosec * (1e-9);
                 double time1 = img1_buf.front()->header.stamp.sec + img1_buf.front()->header.stamp.nanosec * (1e-9);
 
-                // 0.003s sync tolerance
-                if(time0 < time1 - 0.003)
+                // 0.05s sync tolerance (Gazebo 双目不同步)
+                if(time0 < time1 - 0.05)
                 {
                     img0_buf.pop();
                     printf("throw img0\n");
                 }
-                else if(time0 > time1 + 0.003)
+                else if(time0 > time1 + 0.05)
                 {
                     img1_buf.pop();
                     printf("throw img1\n");

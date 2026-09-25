@@ -18,6 +18,19 @@
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
+/**
+ * 两帧双目重投影残差因子：左相机 i 帧到右相机 j 帧的跨帧跨相机重投影
+ *
+ * 2 维残差＝右图像平面上的重投影误差 (pixel)
+ * 7 维输入 Pose_i   — 第 i 帧 IMU 位姿
+ * 7 维输入 Pose_j   — 第 j 帧 IMU 位姿
+ * 7 维输入 外参 cam0 — IMU 到左相机 T_ic0
+ * 7 维输入 外参 cam1 — IMU 到右相机 T_ic1
+ * 1 维输入 inv_depth — 特征点逆深度
+ * 1 维输入 td        — 相机-IMU 时间偏移
+ *
+ * 投影路径: 左相机(i) → IMU(i) → world → IMU(j) → 右相机(j)
+ */
 class ProjectionTwoFrameTwoCamFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 7, 1, 1>
 {
   public:

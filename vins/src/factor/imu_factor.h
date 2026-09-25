@@ -23,6 +23,17 @@
 #define ROS_ERROR RCUTILS_LOG_ERROR
 
 
+/**
+ * IMU 预积分残差因子：约束两个关键帧之间的 IMU 预积分量
+ *
+ * 15 维残差＝[δp(3), δq(3), δv(3), δba(3), δbg(3)]^T
+ * 7 维输入 Pose_i    [x, y, z, qx, qy, qz, qw]
+ * 9 维输入 SpeedBias_i [vx, vy, vz, bax, bay, baz, bgx, bgy, bgz]
+ * 7 维输入 Pose_j
+ * 9 维输入 SpeedBias_j
+ *
+ * 残差通过预积分协方差的 Cholesky 分解 (sqrt_info) 进行马氏距离加权
+ */
 class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
 {
   public:
@@ -32,7 +43,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
     }
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
     {
-
+        // i 时刻状态
         Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);
         Eigen::Quaterniond Qi(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
 
@@ -40,6 +51,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
         Eigen::Vector3d Bai(parameters[1][3], parameters[1][4], parameters[1][5]);
         Eigen::Vector3d Bgi(parameters[1][6], parameters[1][7], parameters[1][8]);
 
+        // j 时刻状态
         Eigen::Vector3d Pj(parameters[2][0], parameters[2][1], parameters[2][2]);
         Eigen::Quaterniond Qj(parameters[2][6], parameters[2][3], parameters[2][4], parameters[2][5]);
 
@@ -79,6 +91,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
         //sqrt_info.setIdentity();
         residual = sqrt_info * residual;
 
+        // 雅可比式
         if (jacobians)
         {
             double sum_dt = pre_integration->sum_dt;

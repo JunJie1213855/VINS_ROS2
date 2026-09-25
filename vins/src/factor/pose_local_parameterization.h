@@ -13,6 +13,14 @@
 #include <ceres/ceres.h>
 #include "../utility/utility.h"
 
+/**
+ * 位姿局部参数化 (SE(3) 切空间)：将 7 维过参数化 [x,y,z,qx,qy,qz,qw] 映射到 6 维切空间
+ *
+ * GlobalSize = 7, LocalSize = 6 (δp(3), δθ(3))
+ *
+ * Plus: [P, Q] ⊕ [δp, δθ] = [P+δp, Q⊗Exp(δθ)]
+ *   位置用加法更新，旋转用四元数右乘 (切空间指数映射)
+ */
 class PoseLocalParameterization : public ceres::LocalParameterization
 {
 public:

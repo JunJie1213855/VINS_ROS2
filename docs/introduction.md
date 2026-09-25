@@ -380,8 +380,12 @@ ros2 run global_fusion global_fusion_node
 # 终端 1：VINS-VIO
 ros2 launch vins euroc.launch.py
 
-# 终端 2：回环检测（订阅 VIO 关键帧/位姿）
-ros2 run loop_fusion loop_fusion_node /path/to/config.yaml
+# 终端 2：回环检测（订阅 VIO 关键帧/位姿，发布 /pose_graph/*）
+# 默认复用 vins 安装目录里的 euroc 配置；须与终端 1 使用同一份 config
+ros2 launch loop_fusion loop_fusion.launch.py
+
+# 或手动指定配置 / 同时起 RViz：
+# ros2 launch loop_fusion loop_fusion.launch.py config_path:=<路径> rviz:=true
 
 # 终端 3：可视化
 ros2 launch vins vins_rviz.launch.py

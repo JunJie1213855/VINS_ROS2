@@ -87,6 +87,16 @@ class MarginalizationInfo
 
 };
 
+/**
+ * 边缘化先验因子：将滑动窗口中移除的旧状态转为线性先验约束 (舒尔补)
+ *
+ * 残差维度 = 动态 (取决于被边缘化的参数块数量和维度)
+ * 参数块   = 与边缘化状态相关的保留参数块
+ *
+ * 原理: 对线性化系统 HΔx = b 做舒尔补，消去边缘化变量 x_m:
+ *   H_rr' Δx_r = b_r',  其中 H_rr' = H_rr - H_rm H_mm^{-1} H_mr
+ * 将 H_rr' 的 Cholesky 分解作为信息矩阵，构建残差因子加入后续优化
+ */
 class MarginalizationFactor : public ceres::CostFunction
 {
   public:

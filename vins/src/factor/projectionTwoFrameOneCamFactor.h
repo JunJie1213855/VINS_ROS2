@@ -18,6 +18,18 @@
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
+/**
+ * 两帧单目重投影残差因子：同一相机在两帧之间的特征重投影，含时间偏移在线估计
+ *
+ * 2 维残差＝图像平面上的重投影误差 (pixel)
+ * 7 维输入 Pose_i   — 第 i 帧 IMU 位姿
+ * 7 维输入 Pose_j   — 第 j 帧 IMU 位姿
+ * 7 维输入 外参      — IMU 到相机外参 T_ic
+ * 1 维输入 inv_depth — 特征点逆深度
+ * 1 维输入 td        — 相机-IMU 时间偏移 (在线标定)
+ *
+ * 通过特征速度 (velocity) 补偿卷帘快门/时间偏移引起的特征点位移
+ */
 class ProjectionTwoFrameOneCamFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1, 1>
 {
   public:

@@ -1,0 +1,76 @@
+%YAML:1.0
+
+#common parameters
+imu: 0         
+num_of_cam: 2  
+
+imu_topic: "/imu0"
+image0_topic: "/cam0/image_raw"
+image1_topic: "/cam1/image_raw"
+output_path: "/tmp/vins_output/"
+
+cam0_calib: "cam0_pinhole.yaml"
+cam1_calib: "cam1_pinhole.yaml"
+image_width: 752
+image_height: 480
+
+# frame ids
+world_frame_id: "world"
+body_frame_id: "body"
+camera_frame_id: "camera"
+
+# Extrinsic parameter between IMU(body) and Camera.
+# body = base_link: x 前, y 左, z 上
+# camera: z 光轴(前), x 图像右(下), y 图像下(左)
+# 相机安装: cam0(左) 在 body (0.15, +0.05, 0.2), cam1(右) 在 body (0.15, -0.05, 0.2)
+estimate_extrinsic: 0
+
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [ 0., 0., 1., 0.15,
+           -1., 0., 0., 0.05,
+           0., -1., 0., 0.2,
+           0., 0., 0., 1. ]
+
+body_T_cam1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [ 0., 0., 1., 0.15,
+           -1., 0., 0., -0.05,
+           0., -1., 0., 0.2,
+           0., 0., 0., 1. ]
+
+#Multiple thread support
+multiple_thread: 1
+
+#feature tracker parameters
+max_cnt: 150
+min_dist: 30
+freq: 10
+F_threshold: 1.0
+show_track: 1
+flow_back: 1
+
+#optimization parameters
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+
+#imu parameters (match Gazebo IMU noise: acc std 1.7e-2, gyr std 2e-4)
+acc_n: 0.5
+gyr_n: 0.1
+acc_w: 0.001
+gyr_w: 0.0001
+g_norm: 9.8
+
+#unsynchronization parameters
+estimate_td: 0
+td: 0.0
+
+#loop closure parameters
+load_previous_pose_graph: 0
+pose_graph_save_path: "/tmp/vins_output/pose_graph/"
+save_image: 1

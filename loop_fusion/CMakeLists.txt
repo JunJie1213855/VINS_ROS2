@@ -55,6 +55,25 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# Install launch files
+install(
+  DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch/
+)
+
+# Install DBoW2 vocabulary + BRIEF pattern.
+# pose_graph_node.cpp 用
+#     get_package_share_directory("loop_fusion") + "/../support_files/brief_k10L6.bin"
+# 硬编码定位这两个文件，因此必须装到 share/support_files/，
+# 即 share/${PROJECT_NAME} 的**兄弟**目录，而不是 share/${PROJECT_NAME}/。
+# 缺文件时 VocabularyBinary::deserialize 会对读失败的长度做 new Node[n] —— 直接崩。
+install(
+  FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../support_files/brief_k10L6.bin
+    ${CMAKE_CURRENT_SOURCE_DIR}/../support_files/brief_pattern.yml
+  DESTINATION share/support_files
+)
+
 
 
 #install(TARGETS
